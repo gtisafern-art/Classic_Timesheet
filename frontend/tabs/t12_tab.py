@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                                 QLabel, QDateEdit, QPushButton, QTextEdit,
                                 QComboBox, QMessageBox, QFileDialog, QApplication,
-                                QTableWidget, QTableWidgetItem, QHeaderView)
+                                QTableWidget, QTableWidgetItem, QHeaderView, QMenu)
 from PySide6.QtCore import Qt, QThread, Signal, QDate
 from PySide6.QtGui import QColor, QFont, QKeyEvent
 
@@ -133,6 +133,14 @@ class T12Tab(QWidget):
         self.build_btn = QPushButton("Сформировать")
         self.build_btn.clicked.connect(self._load_timesheet)
         top.addWidget(self.build_btn)
+
+        top.addWidget(QLabel("Должность"))
+        self.position_btn = QPushButton("Все должности")
+        self.position_btn.setMinimumWidth(200)
+        self.position_menu = QMenu(self)
+        self.position_btn.setMenu(self.position_menu)
+        top.addWidget(self.position_btn)
+
         top.addStretch()
         layout.addLayout(top)
 
@@ -194,6 +202,54 @@ class T12Tab(QWidget):
         if restaurants:
             self.restaurant_combo.setCurrentIndex(0)
 
+    def set_positions(self, positions: list):
+        self._populate_position_menu(sorted([p.name for p in positions]))
+
+    def _populate_position_menu(self, names: list):
+        self.position_menu.clear()
+        all_act = self.position_menu.addAction("Выбрать все")
+        all_act.triggered.connect(self._select_all_positions)
+        none_act = self.position_menu.addAction("Снять все")
+        none_act.triggered.connect(self._deselect_all_positions)
+        self.position_menu.addSeparator()
+        for name in names:
+            action = self.position_menu.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(True)
+            action.toggled.connect(self._on_position_toggled)
+        self._update_position_text()
+
+    def _get_position_actions(self):
+        return [a for a in self.position_menu.actions() if a.isCheckable()]
+
+    def _get_selected_positions(self):
+        return [a.text() for a in self._get_position_actions() if a.isChecked()]
+
+    def _on_position_toggled(self):
+        self._update_position_text()
+        if self.t12_data:
+            self._fill_table()
+
+    def _select_all_positions(self):
+        for a in self._get_position_actions():
+            a.setChecked(True)
+
+    def _deselect_all_positions(self):
+        for a in self._get_position_actions():
+            a.setChecked(False)
+
+    def _update_position_text(self):
+        selected = self._get_selected_positions()
+        total = len(self._get_position_actions())
+        if total == 0 or len(selected) == total:
+            self.position_btn.setText("Все должности")
+        elif len(selected) == 0:
+            self.position_btn.setText("Не выбрано")
+        elif len(selected) <= 2:
+            self.position_btn.setText(", ".join(selected))
+        else:
+            self.position_btn.setText(f"Выбрано: {len(selected)}")
+
     def _load_timesheet(self):
         if not self.t12_restaurants:
             return
@@ -226,6 +282,13 @@ class T12Tab(QWidget):
     def _on_data_loaded(self, data: list):
         self.overlay.hide_overlay()
         self.t12_data = data
+        positions = set()
+        for r in data:
+            if r.position_name:
+                positions.add(r.position_name)
+            if r.target_position_name:
+                positions.add(r.target_position_name)
+        self._populate_position_menu(sorted(positions))
         self._fill_table()
         self.status_label.setText(f"Записей: {len(data)}")
         self.status_label.setStyleSheet("color: #34C759; font-size: 11px;")
@@ -246,6 +309,10 @@ class T12Tab(QWidget):
 
     def _fill_table_impl(self):
         grouped = self.t12_repo.group_data(self.t12_data, self.current_start)
+        selected = set(self._get_selected_positions())
+        all_count = len(self._get_position_actions())
+        if selected and len(selected) < all_count:
+            grouped = [r for r in grouped if r.main_position in selected or r.target_position in selected]
         logger.info("T12 fill_table: %d grouped rows, %d raw records",
                      len(grouped), len(self.t12_data))
         

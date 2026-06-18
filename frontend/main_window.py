@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
     def __init__(self, db: MSSQLClient):
         super().__init__()
         self.db = db
-        self.setWindowTitle("Табель v2.0")
+        self.setWindowTitle("Табель v2.1")
         self.resize(1400, 880)
 
         self._create_tabs()
@@ -64,10 +64,8 @@ class MainWindow(QMainWindow):
         self.combination_tab.set_positions(self.timesheet_tab.positions)
         self.combination_tab.set_restaurants(self.timesheet_tab.restaurants)
 
-        from backend.repositories.employee_repo import EmployeeRepository
-        er = EmployeeRepository(self.db)
-        t12_restaurants = er.load_t12_restaurants()
-        self.t12_tab.set_restaurants(t12_restaurants)
+        self.t12_tab.set_restaurants(self.timesheet_tab.restaurants)
+        self.t12_tab.set_positions(self.timesheet_tab.positions)
 
     def closeEvent(self, event):
         self.db.disconnect()

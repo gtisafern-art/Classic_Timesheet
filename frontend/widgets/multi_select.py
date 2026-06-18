@@ -46,6 +46,7 @@ class MultiSelectWidget(QFrame):
 
         self.list = QListWidget()
         self.list.setSelectionMode(QListWidget.NoSelection)
+        self.list.itemChanged.connect(self._on_item_changed)
         layout.addWidget(self.list)
 
         self._all_values = []
@@ -58,6 +59,10 @@ class MultiSelectWidget(QFrame):
         self._all_values = list(items.values())
         self._rebuild()
 
+    def select_all(self):
+        self._checked = set(self._all_values)
+        self._rebuild()
+
     def get_selected_ids(self) -> list:
         ids = []
         for name in self._checked:
@@ -67,7 +72,15 @@ class MultiSelectWidget(QFrame):
                     break
         return ids
 
+    def _on_item_changed(self, item):
+        if item.checkState() == Qt.Checked:
+            self._checked.add(item.text())
+        else:
+            self._checked.discard(item.text())
+        self.selection_changed.emit()
+
     def _rebuild(self):
+        self.list.blockSignals(True)
         self.list.clear()
         filter_text = self.search.text().lower()
         for value in self._all_values:
@@ -77,29 +90,24 @@ class MultiSelectWidget(QFrame):
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Checked if value in self._checked else Qt.Unchecked)
             self.list.addItem(item)
+        self.list.blockSignals(False)
 
     def _filter(self, text: str):
         self._rebuild()
 
     def _select_all(self):
+        self.list.blockSignals(True)
         for i in range(self.list.count()):
             item = self.list.item(i)
             item.setCheckState(Qt.Checked)
             self._checked.add(item.text())
+        self.list.blockSignals(False)
+        self.selection_changed.emit()
 
     def _deselect_all(self):
+        self.list.blockSignals(True)
         self._checked.clear()
         for i in range(self.list.count()):
             self.list.item(i).setCheckState(Qt.Unchecked)
-
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        pos = event.position().toPoint()
-        item = self.list.itemAt(self.list.viewport().mapFrom(self.list.mapTo(self.list.viewport(), pos)))
-        if item and item.flags() & Qt.ItemIsUserCheckable:
-            new_state = Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked
-            item.setCheckState(new_state)
-            if new_state == Qt.Checked:
-                self._checked.add(item.text())
-            else:
-                self._checked.discard(item.text())
+        self.list.blockSignals(False)
+        self.selection_changed.emit()

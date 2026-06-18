@@ -28,7 +28,7 @@ class EmployeeExemptionLoader:
         try:
             query = """
             SELECT [Ссылка], [Наименование]
-            FROM [TimesheetDB].[dbo].[СотрудникиОрганизаций_Перевод]
+            FROM [dbo].[СотрудникиОрганизаций_Перевод]
             WHERE [Наименование] LIKE '%ЕЖД%' 
                OR [Наименование] LIKE '% БД %'
             """

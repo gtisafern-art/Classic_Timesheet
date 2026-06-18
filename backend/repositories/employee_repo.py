@@ -52,8 +52,8 @@ class EmployeeRepository:
         SELECT DISTINCT 
             п.[Ссылка] AS ID,
             п.[Наименование] AS Наименование
-        FROM [TimesheetDB].[dbo].[СотрудникиОрганизаций_Перевод] с
-        INNER JOIN [TimesheetDB].[dbo].[ПодразделенияОрганизаций] п 
+        FROM [dbo].[СотрудникиОрганизаций_Перевод] с
+        INNER JOIN [dbo].[ПодразделенияОрганизаций] п 
             ON с.[ТекущееПодразделениеОрганизации] = п.[Ссылка]
         WHERE с.[ДатаУвольнения] IS NULL
         ORDER BY п.[Наименование]
@@ -75,7 +75,7 @@ class EmployeeRepository:
         SELECT DISTINCT 
             [Ссылка] AS ID,
             [Наименование] AS Наименование
-        FROM [TimesheetDB].[dbo].[ДолжностиОрганизаций]
+        FROM [dbo].[ДолжностиОрганизаций]
         ORDER BY [Наименование]
         """
         result = self.db.execute_query(query) or []
@@ -98,10 +98,10 @@ class EmployeeRepository:
             д.[Ссылка] AS ДолжностьID,
             с.[ДатаПриемаНаРаботу],
             с.[ДатаУвольнения]
-        FROM [TimesheetDB].[dbo].[СотрудникиОрганизаций_Перевод] с
-        LEFT JOIN [TimesheetDB].[dbo].[ДолжностиОрганизаций] д 
+        FROM [dbo].[СотрудникиОрганизаций_Перевод] с
+        LEFT JOIN [dbo].[ДолжностиОрганизаций] д 
             ON с.[ТекущаяДолжностьОрганизации] = д.[Ссылка]
-        LEFT JOIN [TimesheetDB].[dbo].[ПодразделенияОрганизаций] п 
+        LEFT JOIN [dbo].[ПодразделенияОрганизаций] п 
             ON с.[ТекущееПодразделениеОрганизации] = п.[Ссылка]
         WHERE 
             (TRY_CONVERT(date, с.[ДатаПриемаНаРаботу], 104) <= CONVERT(date, ?, 120) OR с.[ДатаПриемаНаРаботу] IS NULL)
@@ -152,7 +152,7 @@ class EmployeeRepository:
         SELECT DISTINCT 
             [Ссылка] AS ID,
             [Наименование] AS Наименование
-        FROM [TimesheetDB].[dbo].[ПодразделенияОрганизаций]
+        FROM [dbo].[ПодразделенияОрганизаций]
         WHERE [Наименование] LIKE '%Ресторан%' 
            OR [Наименование] LIKE '%Бар%'
            OR [Наименование] LIKE '%Кафе%'

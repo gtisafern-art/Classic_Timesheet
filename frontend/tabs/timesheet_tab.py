@@ -8,7 +8,8 @@ from typing import List, Optional
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                                 QTableWidgetItem, QHeaderView, QLineEdit,
                                 QCheckBox, QComboBox, QPushButton,
-                                QLabel, QMessageBox, QAbstractItemView)
+                                QLabel, QMessageBox, QAbstractItemView,
+                                QDialog)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QFont, QKeyEvent
 from PySide6.QtWidgets import QApplication
@@ -170,7 +171,7 @@ class TimesheetTab(QWidget):
         self.table.setColumnCount(10)
         self.table.setHorizontalHeaderLabels([
             "№", "ФИО", "Должность", "Подразделение",
-            "Часы", "Отпуск", "Больн.", "Б/с", "Корр.", "Комментарий"
+            "Часы", "ОТ", "Б", "Б/с", "Корр.", "Комментарий"
         ])
         hdr = self.table.horizontalHeader()
         hdr.setStretchLastSection(True)
@@ -745,15 +746,15 @@ class TimesheetTab(QWidget):
             QMessageBox.information(self, "ТУРВ", f"Нет данных за {self.current_date}")
             return
 
-        lines = [f"ТУРВ — {self.current_restaurant.name} — {self.current_date}", "=" * 60]
+        pos_map = {p.id: p.name for p in self.positions}
+        emp_map = {e.id: e.fio for e in self.all_employees}
+
+        rows_data = []
         total = 0.0
         for emp_id, recs in existing.items():
             for r in recs:
-                ename = ""
-                for e in self.all_employees:
-                    if e.id == emp_id:
-                        ename = e.fio
-                        break
+                ename = emp_map.get(emp_id, "")
+                pos_name = pos_map.get(r.position_id, "")
                 if r.is_vacation:
                     h = "ОТ"
                 elif r.is_sick:
@@ -763,9 +764,48 @@ class TimesheetTab(QWidget):
                 else:
                     h = f"{r.hours:.1f}"
                     total += r.hours
-                lines.append(f"  {ename}  |  {r.work_type}  |  {h}")
-        lines.append(f"\nВСЕГО ЧАСОВ: {total:.1f}")
-        QMessageBox.information(self, "ТУРВ", "\n".join(lines))
+                rows_data.append((ename, pos_name, r.work_type, h))
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"ТУРВ — {self.current_restaurant.name} — {self.current_date}")
+        dlg.resize(720, 450)
+        dlg_layout = QVBoxLayout(dlg)
+
+        tbl = QTableWidget(len(rows_data) + 1, 4)
+        tbl.setHorizontalHeaderLabels(["ФИО", "Должность", "Вид", "Часы"])
+        tbl.setEditTriggers(QTableWidget.NoEditTriggers)
+        tbl.setAlternatingRowColors(True)
+        tbl.verticalHeader().setVisible(False)
+        tbl.horizontalHeader().setStretchLastSection(True)
+
+        for i, (fio, pos, wtype, hours) in enumerate(rows_data):
+            tbl.setItem(i, 0, QTableWidgetItem(fio))
+            tbl.setItem(i, 1, QTableWidgetItem(pos))
+            tbl.setItem(i, 2, QTableWidgetItem(wtype))
+            h_item = QTableWidgetItem(hours)
+            h_item.setTextAlignment(Qt.AlignCenter)
+            tbl.setItem(i, 3, h_item)
+
+        bold = QFont()
+        bold.setBold(True)
+        total_row = len(rows_data)
+        lbl_item = QTableWidgetItem("ИТОГО")
+        lbl_item.setFont(bold)
+        tbl.setItem(total_row, 0, lbl_item)
+        tbl.setItem(total_row, 1, QTableWidgetItem(""))
+        tbl.setItem(total_row, 2, QTableWidgetItem(""))
+        val_item = QTableWidgetItem(f"{total:.1f}")
+        val_item.setFont(bold)
+        val_item.setTextAlignment(Qt.AlignCenter)
+        tbl.setItem(total_row, 3, val_item)
+
+        tbl.resizeColumnsToContents()
+        for i, min_w in enumerate([200, 140, 100, 60]):
+            if tbl.columnWidth(i) < min_w:
+                tbl.setColumnWidth(i, min_w)
+
+        dlg_layout.addWidget(tbl)
+        dlg.exec()
 
     def _clear_unsaved(self):
         if QMessageBox.question(self, "Очистка", "Сбросить все несохранённые изменения?") == QMessageBox.Yes:

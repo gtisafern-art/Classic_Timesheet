@@ -17,7 +17,7 @@ class TimesheetRepository:
 
     def check_fact_table_empty(self) -> bool:
         try:
-            query = "SELECT COUNT(*) as record_count FROM [TimesheetDB].[dbo].[ТабельОрганизаций]"
+            query = "SELECT COUNT(*) as record_count FROM [dbo].[ТабельОрганизаций]"
             result = self.db.execute_query(query)
             if result and result[0]['record_count'] is not None:
                 count = result[0]['record_count']
@@ -31,7 +31,7 @@ class TimesheetRepository:
     def get_next_id(self, prefix: str) -> str:
         try:
             query = """
-            SELECT [id] FROM [TimesheetDB].[dbo].[ТабельОрганизаций]
+            SELECT [id] FROM [dbo].[ТабельОрганизаций]
             WHERE [id] LIKE ? + '%'
             """
             result = self.db.execute_query(query, (prefix,))
@@ -72,7 +72,7 @@ class TimesheetRepository:
                 [is_vacation],
                 [is_sick],
                 [is_without_pay]
-            FROM [TimesheetDB].[dbo].[ТабельОрганизаций]
+            FROM [dbo].[ТабельОрганизаций]
             WHERE [date] = CONVERT(date, ?)
                 AND [restaurant_id] = ?
             ORDER BY [id]
@@ -114,7 +114,7 @@ class TimesheetRepository:
             new_id = self.get_next_id(prefix)
 
             insert_query = """
-            INSERT INTO [TimesheetDB].[dbo].[ТабельОрганизаций]
+            INSERT INTO [dbo].[ТабельОрганизаций]
                 ([id], [date], [restaurant_id], [employee_id], [position_id], [target_position_id], 
                  [hours], [work_type], [is_correction], [comment], [created_at],
                  [is_vacation], [is_sick], [is_without_pay])

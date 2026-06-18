@@ -51,7 +51,7 @@ class T12Repository:
                         т.[is_correction] DESC,
                         т.[id] DESC
                 ) as rn
-            FROM [TimesheetDB].[dbo].[ТабельОрганизаций] т
+            FROM [dbo].[ТабельОрганизаций] т
             WHERE т.[date] BETWEEN CONVERT(date, ?) AND CONVERT(date, ?)
                 AND т.[restaurant_id] = ?
         )
@@ -72,13 +72,13 @@ class T12Repository:
             р.[created_at],
             ISNULL(подр.[Наименование], '') as employee_department
         FROM RankedRecords р
-        LEFT JOIN [TimesheetDB].[dbo].[СотрудникиОрганизаций_Перевод] с 
+        LEFT JOIN [dbo].[СотрудникиОрганизаций_Перевод] с 
             ON р.[employee_id] = с.[Ссылка]
-        LEFT JOIN [TimesheetDB].[dbo].[ДолжностиОрганизаций] п 
+        LEFT JOIN [dbo].[ДолжностиОрганизаций] п 
             ON р.[position_id] = п.[Ссылка]
-        LEFT JOIN [TimesheetDB].[dbo].[ДолжностиОрганизаций] теп 
+        LEFT JOIN [dbo].[ДолжностиОрганизаций] теп 
             ON р.[target_position_id] = теп.[Ссылка]
-        LEFT JOIN [TimesheetDB].[dbo].[ПодразделенияОрганизаций] подр
+        LEFT JOIN [dbo].[ПодразделенияОрганизаций] подр
             ON с.[ТекущееПодразделениеОрганизации] = подр.[Ссылка]
         WHERE р.rn = 1
         """
