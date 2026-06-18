@@ -1,9 +1,15 @@
 """Конфигурация подключения к БД"""
 
+import sys
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+if getattr(sys, 'frozen', False):
+    _exe_dir = os.path.dirname(sys.executable)
+    if not load_dotenv(os.path.join(_exe_dir, '.env')):
+        load_dotenv(os.path.join(sys._MEIPASS, '.env'))
+else:
+    load_dotenv()
 
 
 class Config:
